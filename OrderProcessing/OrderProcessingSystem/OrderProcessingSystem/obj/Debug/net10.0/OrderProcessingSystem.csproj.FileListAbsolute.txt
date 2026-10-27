@@ -1,0 +1,16 @@
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\obj\Debug\net10.0\OrderProcessingSystem.GeneratedMSBuildEditorConfig.editorconfig
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\obj\Debug\net10.0\OrderProcessingSystem.AssemblyInfoInputs.cache
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\obj\Debug\net10.0\OrderProcessingSystem.AssemblyInfo.cs
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\obj\Debug\net10.0\OrderProcessingSystem.csproj.CoreCompileInputs.cache
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\obj\Debug\net10.0\OrderProcessingSystem.sourcelink.json
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\bin\Debug\net10.0\OrderProcessingSystem.exe
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\bin\Debug\net10.0\OrderProcessingSystem.deps.json
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\bin\Debug\net10.0\OrderProcessingSystem.runtimeconfig.json
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\bin\Debug\net10.0\OrderProcessingSystem.dll
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\bin\Debug\net10.0\OrderProcessingSystem.pdb
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\obj\Debug\net10.0\OrderProcessingSystem.dll
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\obj\Debug\net10.0\refint\OrderProcessingSystem.dll
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\obj\Debug\net10.0\OrderProcessingSystem.pdb
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\obj\Debug\net10.0\OrderProcessingSystem.genruntimeconfig.cache
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\obj\Debug\net10.0\ref\OrderProcessingSystem.dll
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\OrderProcessing\OrderProcessingSystem\OrderProcessingSystem\obj\Debug\net10.0\OrderPro.57291680.Up2Date

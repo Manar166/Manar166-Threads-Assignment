@@ -1,0 +1,16 @@
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\bin\Debug\net10.0\menuViews.exe
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\bin\Debug\net10.0\menuViews.deps.json
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\bin\Debug\net10.0\menuViews.runtimeconfig.json
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\bin\Debug\net10.0\menuViews.dll
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\bin\Debug\net10.0\menuViews.pdb
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\obj\Debug\net10.0\menuViews.GeneratedMSBuildEditorConfig.editorconfig
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\obj\Debug\net10.0\menuViews.AssemblyInfoInputs.cache
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\obj\Debug\net10.0\menuViews.AssemblyInfo.cs
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\obj\Debug\net10.0\menuViews.csproj.CoreCompileInputs.cache
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\obj\Debug\net10.0\menuViews.sourcelink.json
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\obj\Debug\net10.0\menuViews.dll
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\obj\Debug\net10.0\refint\menuViews.dll
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\obj\Debug\net10.0\menuViews.pdb
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\obj\Debug\net10.0\menuViews.genruntimeconfig.cache
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\obj\Debug\net10.0\ref\menuViews.dll
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\menuViews\menuViews\menuViews\obj\Debug\net10.0\menuViews.csproj.Up2Date

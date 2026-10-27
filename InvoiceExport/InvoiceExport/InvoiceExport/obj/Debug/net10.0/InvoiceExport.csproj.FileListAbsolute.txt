@@ -1,0 +1,16 @@
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\bin\Debug\net10.0\InvoiceExport.exe
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\bin\Debug\net10.0\InvoiceExport.deps.json
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\bin\Debug\net10.0\InvoiceExport.runtimeconfig.json
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\bin\Debug\net10.0\InvoiceExport.dll
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\bin\Debug\net10.0\InvoiceExport.pdb
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\obj\Debug\net10.0\InvoiceExport.GeneratedMSBuildEditorConfig.editorconfig
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\obj\Debug\net10.0\InvoiceExport.AssemblyInfoInputs.cache
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\obj\Debug\net10.0\InvoiceExport.AssemblyInfo.cs
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\obj\Debug\net10.0\InvoiceExport.csproj.CoreCompileInputs.cache
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\obj\Debug\net10.0\InvoiceExport.sourcelink.json
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\obj\Debug\net10.0\InvoiceExport.dll
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\obj\Debug\net10.0\refint\InvoiceExport.dll
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\obj\Debug\net10.0\InvoiceExport.pdb
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\obj\Debug\net10.0\InvoiceExport.genruntimeconfig.cache
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\obj\Debug\net10.0\ref\InvoiceExport.dll
+D:\Simulation\Advanced C#\Assignment 4\Manar166-Threads-Assignment\InvoiceExport\InvoiceExport\InvoiceExport\obj\Debug\net10.0\InvoiceE.1D38E910.Up2Date
