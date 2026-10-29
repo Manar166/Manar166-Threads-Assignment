@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace OrderProcessingSystem.Classes
+namespace OrderProcessingSystem.Models
 {
     public class Coupon
     {

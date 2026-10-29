@@ -1,4 +1,5 @@
 ﻿using OrderProcessingSystem.Generators;
+using OrderProcessingSystem.Interfaces;
 using OrderProcessingSystem.NewFolder;
 using OrderProcessingSystem.Repos;
 using OrderProcessingSystem.Runners;
@@ -10,6 +11,7 @@ namespace OrderProcessingSystem
 {
     internal class Program
     {
+
         static async Task Main(string[] args)
         {
             using var cts = new CancellationTokenSource();
@@ -77,9 +79,26 @@ namespace OrderProcessingSystem
                 Phase2Runner phase2Runner = new Phase2Runner(incomingOrders, orderPricer,dataSeeder,raceConditionDemo,orderValidator,orderProcessorV2, asyncOrderRepository, reportGenerator);
 
 
+                CustomerService customerService = new CustomerService(asyncCustomerRepository);
+                var inventoryService = new InventoryService(asyncProductRepository);
+                IPaymentGateway paymentGateway = new PaymentGatway(
+                    fileStore,
+                    timeoutOrderIds: new HashSet<int> { 5 },
+                    declineOrderIds: new HashSet<int> { 8 }
+                );
 
-                // await phase1Runner.RunAsync(ct);
-                await phase2Runner.RunAsync(ct);
+                IEmailService emailService = new EmailService(fileStore, new Dictionary<int, int>
+                {
+                    [3] = 2,
+                    [17] = int.MaxValue
+                });
+
+                OrderProcessor orderProcessor = new OrderProcessor(customerService, inventoryService, pricingService, asyncOrderRepository, paymentGateway, emailService);
+                Phase3Runner phase3Runner = new Phase3Runner(dataSeeder,asyncOrderRepository, orderProcessor,fileStore);
+
+                //await phase1Runner.RunAsync(ct);
+                //await phase2Runner.RunAsync(ct);
+                await phase3Runner.RunAsync(ct);
 
                 //await raceConditionDemo.RunAsync();
 

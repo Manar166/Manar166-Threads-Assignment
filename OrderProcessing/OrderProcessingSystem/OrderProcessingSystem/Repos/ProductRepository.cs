@@ -1,4 +1,4 @@
-﻿using OrderProcessingSystem.Classes;
+﻿using OrderProcessingSystem.Models;
 
 namespace OrderProcessingSystem.Repos
 {

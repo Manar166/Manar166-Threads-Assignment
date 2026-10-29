@@ -1,5 +1,6 @@
-﻿using OrderProcessingSystem.Classes;
-using OrderProcessingSystem.Enums;
+﻿using OrderProcessingSystem.Enums;
+using OrderProcessingSystem.Exceptions;
+using OrderProcessingSystem.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -9,10 +10,13 @@ namespace OrderProcessingSystem.Repos
     public class OrderRepository
     {
         private readonly JsonFileStore _fileStore;
+        private readonly HashSet<int> failSaveForOrderIds ;
+
 
         public OrderRepository(JsonFileStore fileStore)
         {
             _fileStore = fileStore;
+            failSaveForOrderIds = new HashSet<int> { 13 };
         }
 
         public async Task<List<Order>> GetAllAsync(CancellationToken token)
@@ -34,6 +38,12 @@ namespace OrderProcessingSystem.Repos
 
         public async Task SaveAsync(Order order, CancellationToken token)
         {
+            if (failSaveForOrderIds.Contains(order.Id) && order.Status == OrderStatus.Completed)
+
+            {
+                throw new DatabaseWriteException(
+                    "Connection lost during commit");
+            }
             Log.Info(nameof(OrderRepository), "Opening connection...");
             await Task.Delay(200, token);
 

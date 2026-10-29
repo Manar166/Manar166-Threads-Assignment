@@ -13,7 +13,7 @@ namespace OrderProcessingSystem
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> fileSymaphore = new();
         private static readonly ConcurrentDictionary<string, Lock> _fileLocks = new();
 
-        private static readonly JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions()
+        public static readonly JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions()
         {
             WriteIndented = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

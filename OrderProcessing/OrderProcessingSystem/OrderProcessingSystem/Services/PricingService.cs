@@ -1,4 +1,4 @@
-﻿using OrderProcessingSystem.Classes;
+﻿using OrderProcessingSystem.Models;
 using OrderProcessingSystem.Enums;
 using OrderProcessingSystem.Exceptions;
 using OrderProcessingSystem.Repos;
@@ -54,11 +54,11 @@ namespace OrderProcessingSystem.Services
         {
             decimal coupnDiscount = 0m;
             decimal customerLoalityDiscount = 0m;
-            decimal totalDiscount = 0m;
+            
             var customer =await _customertRepo.GetByIdAsync(order.CustomerId, ct);
             if (customer == null)
             {
-                throw new InvalidOperationException($"Customer #{order.CustomerId} not found");
+                throw new CustomerNotFoundExption(order.CustomerId);
 
             }
 
@@ -79,14 +79,14 @@ namespace OrderProcessingSystem.Services
 
                 if (coupon is null)
                 {
-                    throw new InvalidOperationException(
-                        $"Coupon '{order.CouponCode}' does not exist");
+                    throw new InvalidCouponException(nameof(order.CouponCode)," does not exist");
+
                 }
 
                 if (coupon.ExpiryDate < DateTime.UtcNow)
                 {
-                    throw new InvalidOperationException(
-                        $"Coupon '{order.CouponCode}' has expired");
+                    throw new InvalidCouponException(nameof(order.CouponCode), " has Expired");
+
                 }
                 coupnDiscount = coupon.DiscountPercent;
 
@@ -133,6 +133,29 @@ namespace OrderProcessingSystem.Services
 
             ShippingCost = 5.00m + 1.50m * totalQuantity + 2.00m * totalWeight;
            return Math.Round(ShippingCost, 2, MidpointRounding.AwayFromZero);
+
+        }
+
+        public async Task<decimal> CalculateTotalAsync(Order order, CancellationToken ct)
+        {
+            decimal subToal = await CalculateSubTotalAsync(order, ct);
+
+            var discount =  GetDiscountAsync(order, ct);
+                Task<decimal> shippingCost = CalculateShippingCostAsync(order, ct);
+              var result=  await Task.WhenAll(discount, shippingCost);
+
+            order.Discount = result[0];
+            order.ShippingCost = result[1];
+
+            order.TotalAmount = Math.Round((order.SubTotal - order.Discount + order.ShippingCost), 2, MidpointRounding.AwayFromZero);
+
+
+
+
+            return order.TotalAmount;
+
+
+
 
         }
 

@@ -1,4 +1,4 @@
-﻿using OrderProcessingSystem.Classes;
+﻿using OrderProcessingSystem.Models;
 using OrderProcessingSystem.Enums;
 using OrderProcessingSystem.NewFolder;
 using OrderProcessingSystem.Repos;
