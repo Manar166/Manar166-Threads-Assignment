@@ -1,6 +1,7 @@
 ﻿using OrderProcessingSystem.Generators;
 using OrderProcessingSystem.Interfaces;
 using OrderProcessingSystem.NewFolder;
+using OrderProcessingSystem.Phase_4;
 using OrderProcessingSystem.Repos;
 using OrderProcessingSystem.Runners;
 using OrderProcessingSystem.Services;
@@ -91,14 +92,32 @@ namespace OrderProcessingSystem
                 {
                     [3] = 2,
                     [17] = int.MaxValue
+
                 });
 
                 OrderProcessor orderProcessor = new OrderProcessor(customerService, inventoryService, pricingService, asyncOrderRepository, paymentGateway, emailService);
                 Phase3Runner phase3Runner = new Phase3Runner(dataSeeder,asyncOrderRepository, orderProcessor,fileStore);
 
+
+
+                var paymentRepository = new PaymentRepository(fileStore, asyncOrderRepository);
+                var emailRepository = new EmailRepository(fileStore, asyncOrderRepository);
+
+                var dashboardService = new CustomerDashboardService(
+                            asyncCustomerRepository,
+                            asyncOrderRepository,
+                            paymentRepository,
+                            emailRepository,
+                            failPaymentsForCustomerIds: new[] { 99 });
+                Phase4Runner phase4Runner = new Phase4Runner(
+                                                            dataSeeder,
+                                                            orderProcessor,
+                                                            asyncOrderRepository,
+                                                            fileStore, dashboardService);
                 //await phase1Runner.RunAsync(ct);
                 //await phase2Runner.RunAsync(ct);
-                await phase3Runner.RunAsync(ct);
+                //await phase3Runner.RunAsync(ct);
+                await phase4Runner.RunAsync(ct);
 
                 //await raceConditionDemo.RunAsync();
 

@@ -35,6 +35,15 @@ namespace OrderProcessingSystem.Repos
 
         }
 
+        public async Task<List<Order>> GetByCustomerIdAsync(int customerId, CancellationToken token)
+        {
+             List<Order> allOrders =await GetAllAsync(token);
+            return allOrders.Where(o => o.CustomerId == customerId).ToList();
+
+
+
+        }
+
 
         public async Task SaveAsync(Order order, CancellationToken token)
         {

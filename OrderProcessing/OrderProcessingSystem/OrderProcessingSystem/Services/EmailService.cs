@@ -18,6 +18,7 @@ namespace OrderProcessingSystem.Services
         private readonly Dictionary<int, int> _attemptCounts = new();
         private readonly object _lock = new();
 
+
         public EmailService(
             JsonFileStore store,
             Dictionary<int, int> failAttempts)
@@ -73,6 +74,69 @@ namespace OrderProcessingSystem.Services
                     return emails;
                 },
                 ct);
+        }
+
+
+        public async Task SendConfirmationWithRetryAsync(Order order, Customer customer, CancellationToken ct)
+        {
+            int retries = 3;
+            int[] delays = { 500, 1000, 2000 };
+            int attempts = 0;
+
+            for ( attempts = 0; attempts <= 3; attempts++)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                if (attempts > 0)
+                {
+                    await Task.Delay(delays[attempts - 1], ct);
+
+
+                }
+
+                try
+                {
+                    await SendConfirmationAsync(order, customer, ct);
+                    Console.WriteLine($"Email for Order #{order.Id} sent on attempt {attempts+1}");
+
+
+                    return;
+                }
+                catch (SmtpUnavailableException ex)
+                {
+                    Console.WriteLine($"Order #{order.Id}: Email attempt {attempts+1} failed: {ex.Message}");
+
+                   
+
+                    if (attempts == retries)
+                    {
+                        EmailMessage email = new EmailMessage
+                        {
+                            Id = Guid.NewGuid(),
+                            OrderId = order.Id,
+                            To = customer.Email,
+                            Subject = $"Order #{order.Id} Confirmation",
+                            Body = $"Your order #{order.Id} has been confirmed.",
+                            Attempts = attempts+1,
+                            LastError = ex.Message
+                        };
+
+                        await _store.UpdateAsync<EmailMessage>(_store.GetPath(DataFiles.EmailRetry),
+                            emails => { emails.Add(email); return emails; }
+                            
+                            , CancellationToken.None);
+
+                        Console.WriteLine($"Email for Order #{order.Id} queued for retry later");
+
+
+                        return;
+                    }
+                 
+                }
+            }
+            
+
+        
         }
     }
 }

@@ -40,6 +40,8 @@ public class Phase3Runner
                 break;
 
             tasks.Add(_orderProcessor.ProcessOrderAsync(order, ct));
+           
+
         }
 
        

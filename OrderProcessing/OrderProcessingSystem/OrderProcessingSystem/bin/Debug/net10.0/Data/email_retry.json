@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "id": "1127ca94-3a27-4c43-9921-6ccecade74c8",
+    "orderId": 17,
+    "to": "karim.samir@example.com",
+    "subject": "Order #17 Confirmation",
+    "body": "Your order #17 has been confirmed.",
+    "sentAt": "0001-01-01T00:00:00",
+    "attempts": 4,
+    "lastError": "SMTP provider unavailable"
+  }
+]

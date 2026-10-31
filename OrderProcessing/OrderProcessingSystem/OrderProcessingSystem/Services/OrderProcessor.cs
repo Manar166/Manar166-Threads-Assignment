@@ -59,7 +59,7 @@ namespace OrderProcessingSystem.Services
 
                 }
 
-                 isReserved = await inventoryService.ReserveStockAsync(order, ct);
+                isReserved = await inventoryService.ReserveStockAsync(order, ct);
                 if (!isReserved)
                 {
                     order.Status = OrderStatus.Rejected;
@@ -76,7 +76,7 @@ namespace OrderProcessingSystem.Services
                 }
                 catch (InvalidCouponException ex)
                 {
-                    bool released=await inventoryService.ReleaseStockAsync(order, CancellationToken.None);
+                    bool released = await inventoryService.ReleaseStockAsync(order, CancellationToken.None);
                     if (!released)
                     {
                         throw new InvalidOperationException(
@@ -112,7 +112,7 @@ namespace OrderProcessingSystem.Services
                 using var paymentCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 paymentCts.CancelAfter(TimeSpan.FromSeconds(3));
 
-                
+
 
                 try
                 {
@@ -121,7 +121,7 @@ namespace OrderProcessingSystem.Services
                     if (!paymentResult.Success)
                     {
 
-                        
+
                         bool released = await inventoryService.ReleaseStockAsync(order, ct);
                         if (!released)
                         {
@@ -149,7 +149,7 @@ namespace OrderProcessingSystem.Services
                             CancellationToken.None);
 
                         paymentResult.Status = PaymentStatus.Refunded;
-                         bool released = await inventoryService.ReleaseStockAsync(order, CancellationToken.None);
+                        bool released = await inventoryService.ReleaseStockAsync(order, CancellationToken.None);
                         if (!released)
                         {
                             throw new InvalidOperationException(
@@ -197,30 +197,7 @@ namespace OrderProcessingSystem.Services
                 }
 
 
-
-                bool emailSent = false;
-
-                for (int i = 1; i <= 3; i++)
-                {
-                    ct.ThrowIfCancellationRequested();
-                    try
-                    {
-                        await emailService.SendConfirmationAsync(order, customer, ct);
-                        emailSent = true;
-                        break;
-                    }
-                    catch (SmtpUnavailableException ex)
-                    {
-                        Console.WriteLine($"Order #{order.Id}: Email attempt {i} failed: {ex.Message}");
-
-                    }
-
-
-                }
-                if (!emailSent)
-                {
-                    Console.WriteLine($"Order #{order.Id}: Email failed after 3 attempts.");
-                }
+                await emailService.SendConfirmationWithRetryAsync(order, customer, ct);
 
 
                 return order.Status == OrderStatus.Completed;
@@ -247,15 +224,18 @@ namespace OrderProcessingSystem.Services
                 order.FailureReason = "Cancelled";
                 await orderRepository.SaveAsync(order, CancellationToken.None);
 
-                throw ;
-                
+                throw;
+
             }
-            
+
 
         }
 
 
 
-        
+
+
+
+
     }
 }
