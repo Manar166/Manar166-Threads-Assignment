@@ -1,4 +1,124 @@
 
+## 1. How to run and project structure
+
+**Prerequisites:** .NET 10 SDK. Target framework in `OrderProcessingSystem.csproj`: `net10.0`; implicit usings and nullable reference types are enabled.
+
+From the directory containing `OrderProcessingSystem.csproj`:
+
+```powershell
+dotnet restore
+dotnet build
+dotnet run
+```
+
+The menu offers **Phase 1**, **Phase 2**, **Phase 3**, and **Phase 4**. Alternatively, use:
+
+```powershell
+dotnet run -- --phase 1
+dotnet run -- --phase 2
+dotnet run -- --phase 3
+dotnet run -- --phase 4
+dotnet run -- --phase 3 --cancel-after 500
+dotnet run -- --phase 4 --cancel-after 500
+```
+
+`--cancel-after` specifies milliseconds. **Caution:** `DataSeeder.ResetAsync` deletes and recreates the Data directory. Capture JSON results between runs. Phase 4 executes checkout/dashboard/shipping first, then fraud/email re-send; Task 10.4's send test therefore is not deleted by a subsequent Phase 4 reset. This menu and ordering were added in the documentation package and require a build/run check on the target PC.
+
+**Data location:** `JsonFileStore` defaults to `Path.Combine(AppContext.BaseDirectory, "Data")`. For a Debug build this is usually `OrderProcessingSystem/bin/Debug/net10.0/Data/`, *not* the solution root. Invoice files are under `Data/invoices/`; reports under `Data/Reports/`. `ResetAsync()` regenerates this directory.
+
+### Source map and responsibilities
+
+| Folder / class | Responsibility |
+|---|---|
+| `Program` | Creates dependencies, controls cancellation and dispatches selected phase. |
+| `DataSeeder`, `DataFiles` | Seeds customers/products/coupons/20 incoming orders, resets and names JSON files. |
+| `JsonFileStore` | JSON serialization, async and sync file operations, atomic replace, per-file synchronization. |
+| `Log` | Timestamp/thread-aware simulated repository logging. |
+| `Models/Customer`, `Product`, `Coupon`, `Order`, `OrderItem` | Domain records and order lines. |
+| `Models/PaymentResult`, `PaymentTransaction`, `EmailMessage`, `Report` | Payment/email/report data. |
+| `Enums/LoyaltyTier`, `OrderStatus`, `PaymentStatus` | Domain statuses. |
+| `Repos/CustomerRepository`, `ProductRepository`, `CouponRepository` | Async access to master data and simulated I/O delays. |
+| `Repos/IncomingOrderRepository`, `OrderRepository` | Incoming and processed order queries and persistence. |
+| `Repos/PaymentRepository`, `EmailRepository` | Customer-scoped payment/email lookup. |
+| `SyncRepos/*` | Blocking repository counterparts used for comparisons. |
+| `NewFolder/OrderValidator`, `SyncOrderValidator` | Async vs sync validation. |
+| `Services/OrderCopier`, `OrderPricer`, `PricingService` | Copy/order pricing, coupons, shipping calculation. |
+| `Services/OrderProcessorV2` | Phase 2 validated order workflow. |
+| `Services/CustomerService`, `InventoryService` | Customer checks, all-or-nothing stock reservation and release. |
+| `Services/PaymentGatway`, `OrderProcessor`, `EmailService` | Payment, checkout compensation, retries and email handling. |
+| `Services/SyncOrderProcessor` | Blocking order processing used for sync comparison scenarios. |
+| `Generators/InvoiceGenerator`, `ReportGenerator` | Invoice text generation and sales reporting. |
+| `Runners/Phase1Runner` | Phase 1 sync/async validation measurement. |
+| `Runners/RaceConditionDemo`, `Phase2Runner` | Race demonstration, concurrent processing and pricing comparisons. |
+| `Runners/Phase3Runner` | Concurrent 20-order checkout and status summary. |
+| `Runners/Phase 4/phase4Runner` (`Phase4Runner`) | Task 10.1 channel progress, 10.2 dashboard, 10.3 shipping. |
+| `Runners/Phase 4/CustomerDashboard`, `CustomerDashboardService` | Combines profile, orders, payments, email queries. |
+| `Interfaces/IShippingCarrier`, `FastShip`, `CairoExpress`, `NileCourier` | Carrier contract and three simulated providers. |
+| `Runners/Phase 4/ShippingQuote`, `ShippingQuoteService` | Shipping quote result, first-success race, deadline, cancellation. |
+| `Runners/Phase 4/Task104Runner` | Fraud scoring and email resend. |
+| `Interfaces/IEmailService`, `IPaymentGateway` | Service contracts. |
+| `Exceptions/*` | Customer, coupon, file, shipping, SMTP and write failures. |
+
+## 2. Storage design and JSON integrity
+
+`DataFiles` defines eight JSON files. Every file is a **JSON array**; property names are **camelCase** and enum values are serialized as strings (`JsonStringEnumConverter`). Example shapes below illustrate the schema; field availability depends on the model.
+
+| File | Contents | Uploaded snapshot count |
+|---|---|---:|
+| `customers.json` | Customer profiles, email, active flag, loyalty tier | 10 |
+| `products.json` | Catalog, prices, stock, weights | 8 |
+| `coupons.json` | Coupon codes, discount rates and expiry | 4 |
+| `incoming_orders.json` | Initial order requests/items | 20 |
+| `orders.json` | Saved order statuses, totals and failures | 20 |
+| `payments.json` | Payment transaction records | 12 |
+| `emails.json` | Sent confirmation email records | 9 |
+| `email_retry.json` | Emails pending later retry | 1 |
+
+Example illustrative snippets (not copied transactions):
+
+```json
+[
+  { "id": 1, "name": "Ahmed Ali", "email": "ahmed.ali@example.com", "isActive": true, "loyaltyTier": "Gold" }
+]
+```
+
+```json
+[
+  { "orderId": 3, "status": "Captured" }
+]
+```
+
+**Concurrent-access protections:** `JsonFileStore` uses a static `ConcurrentDictionary<string, SemaphoreSlim>` to associate a semaphore with each path. Its asynchronous read/write operations acquire that semaphore. Writes serialize to a unique `.tmp` file and use `File.Move(tempPath, filePath, overwrite: true)` to replace the destination only after complete writing; cleanup removes leftovers and releases the semaphore. The store also exposes synchronous per-file `Lock` objects for blocking operations. This design prevents cooperating operations in the same process from interleaving partial JSON writes. Verify that all read-modify-write paths go through the protected `UpdateAsync`/sync counterpart; locking individual reads and writes separately does **not** make a compound transaction atomic. Atomic replacement is not a substitute for multi-process cross-file transactions. Cancellation must not leave invalid JSON.
+
+**Snapshot limitation:** `sample-output/uploaded-snapshot/` is the set of JSON files supplied in the ZIP. It is not evidence that each independent phase passed its end-state checks. Save fresh files into `sample-output/phase-1/` etc. after running each phase and compare against Sections 7.3, 8.4, 9.4 and 10.1 of the assignment.
+
+## 3. Performance and concurrency measurements
+
+*Missing figures were not present in the supplied transcript/ZIP. Record each measurement from a fresh local run using `Stopwatch`, distinct `Environment.CurrentManagedThreadId` values and a snapshot of `ThreadPool.ThreadCount` at the chosen benchmark boundaries. `ThreadPool.ThreadCount` is the size of the pool at observation time, **not** the number of active operations.*
+
+| Experiment | Time | Distinct threads | ThreadPool.ThreadCount | Evidence |
+|---|---:|---:|---:|---|
+| Phase 1 — sync validation | Not measured | Not measured | Not measured | Runner measures sync elapsed time |
+| Phase 1 — async validation | Not measured | Not measured | Not measured | Runner measures async elapsed time |
+| Phase 2 — pricing sequential | Not measured | Not measured | Not measured | `Phase2Runner` prints ms |
+| Phase 2 — pricing concurrent | Not measured | Not measured | Not measured | `Phase2Runner` prints ms |
+| Phase 2 — concurrent order processing | Not measured | Not measured | Not measured | `Phase2Runner` stopwatch |
+| Phase 3 — sync (10 dedicated threads) | Not measured | Not measured | Not measured | No verified benchmark output supplied |
+| Phase 3 — async (10 tasks) | Not measured | Not measured | Not measured | No verified benchmark output supplied |
+| Phase 4 — Dashboard Customer #3 | **802 ms** | Not measured | Not measured | User console result |
+| Phase 4 — Shipping Order #1 | **1050 ms** | Not measured | Not measured | User console result: FastShip, free shipping |
+| Phase 4 — Shipping Orders #2–#5 | **1208, 1211, 1203, 1201 ms** | Not measured | Not measured | User console results, Flat rate |
+| Phase 4 — Fraud sequential | **4.89 s** | Not measured | Not measured | User console result |
+| Phase 4 — Fraud parallel | **0.55 s** | **16** | Not measured | User console result |
+| Phase 4 — Email re-send | **4.18 s** | Not measured | Not measured | User console result |
+
+**Fraud validation:** 1,005 flags in both runs; first five IDs `4, 8, 12, 29, 33`; identical result sets; speed-up **8.83×**; `Environment.ProcessorCount = 16`. `Parallel.ForEach` has `MaxDegreeOfParallelism = Environment.ProcessorCount`, `ConcurrentBag<int>` ensures thread-safe collection, and cancellation is checked during hashing.
+
+**Email re-send validation:** 30 sends requested with peak concurrency **4** using `Parallel.ForEachAsync(MaxDegreeOfParallelism = 4)`; duration ~4.18s is consistent with the existing ~500ms SMTP simulation over eight waves. Still required: validate `emails.json` contains exactly one message for every test order 1001–1030 and test cancellation. `Interlocked` counters in the runner are instrumentation, not the concurrency limiter.
+
+**Dashboard:** Four independent load tasks start before one `Task.WhenAll` await. Inspect `all.Exception.InnerExceptions` to surface both missing customer 99 and simulated payments-store timeout. A successful Customer #3 has two orders (#3 Completed, #13 Failed), two payments (#3 Captured, #13 Refunded), and one email (#3) according to the assignment target; the user console independently confirmed counts `2 / 2 / 1`.
+
+**Shipping:** Each carrier responds after 150ms handshake plus a carrier-specific random delay; the first successful quote wins, failures are skipped, unfinished calls are cancelled, and a 1200ms deadline returns a 25.00 flat-rate fallback. When all carriers are explicitly injected to fail for #6, the observed output was `All carriers failed`. Observed slight deadline overshoot (1–11ms) includes scheduling and cleanup. Investigate and record cancellation propagation on the caller token separately.
 
 ![alt text](/SceenShoots/image.png)
 ```text
@@ -268,6 +388,28 @@ async void is acceptable for event handlers because standard .NET event delegate
 Using async void allows the event handler to perform asynchronous operations without blocking the UI thread, keeping the application responsive.
 
 
+-----------------------------------------------------------------------
+### Task 10.4 — Execution Results
+
+**Part A — CPU-bound Fraud Scoring**
+
+The sequential execution took 4.89 seconds, while the parallel execution took 0.55 seconds, achieving an 8.83x speed-up.
+
+The parallel implementation used 16 distinct threads on a system reporting 16 logical processors.
+
+Both executions flagged exactly 1,005 orders and produced identical order IDs. The first five flagged IDs were 4, 8, 12, 29, and 33.
+
+`Parallel.ForEach` was selected because fraud scoring is CPU-bound, and `MaxDegreeOfParallelism` limits the number of concurrent iterations.
+
+**Part B — I/O-bound Email Re-send**
+
+The system processed 30 email send requests in 4.18 seconds, with a peak concurrency of exactly 4.
+
+`Parallel.ForEachAsync` was selected because sending emails is an asynchronous I/O-bound operation. The library manages concurrency using `MaxDegreeOfParallelism = 4`.
+
+The observed time was shorter than the assignment's approximate 8-second estimate because the email service simulates a 500 ms send rather than a 1-second send.
+
+Email persistence and cancellation still require explicit verification before considering every requirement fully tested.
 
 
 

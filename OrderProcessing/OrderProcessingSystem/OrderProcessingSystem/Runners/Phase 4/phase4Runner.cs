@@ -1,8 +1,10 @@
 ﻿
 using OrderProcessingSystem;
+using OrderProcessingSystem.Exceptions;
 using OrderProcessingSystem.Models;
 using OrderProcessingSystem.Phase_4;
 using OrderProcessingSystem.Repos;
+using OrderProcessingSystem.Runners.Phase_4;
 using OrderProcessingSystem.Services;
 using System;
 using System.Collections.Generic;
@@ -21,19 +23,25 @@ namespace OrderProcessingSystem.Runners
         private readonly OrderRepository _orderRepository;
         private readonly JsonFileStore _store;
         private readonly CustomerDashboardService dashboardService;
+        private readonly ShippingQuoteService quoteService;
+        private readonly ShippingQuoteService failingQuoteService;
 
         public Phase4Runner(
             DataSeeder dataSeeder,
             OrderProcessor orderProcessor,
             OrderRepository orderRepository,
             JsonFileStore store,
-            CustomerDashboardService dashboardService)
+            CustomerDashboardService dashboardService,
+            ShippingQuoteService quoteService,
+            ShippingQuoteService failingQuoteService)
         {
             _dataSeeder = dataSeeder;
             _orderProcessor = orderProcessor;
             _orderRepository = orderRepository;
             _store = store;
             this.dashboardService = dashboardService;
+            this.quoteService = quoteService;
+            this.failingQuoteService = failingQuoteService;
         }
 
         private record OrderProgress(
@@ -43,7 +51,7 @@ namespace OrderProcessingSystem.Runners
             double ElapsedSeconds,
             Exception? Error);
 
-        public async Task RunAsync(CancellationToken ct)
+        public async Task RunAsync( CancellationToken ct)
         {
             // R1 - Reset and load all 20 orders
             await _dataSeeder.ResetAsync(ct);
@@ -200,6 +208,38 @@ namespace OrderProcessingSystem.Runners
                 }
 
                 Console.WriteLine($"Elapsed: {sw.ElapsedMilliseconds} ms");
+            }
+
+            Console.WriteLine("=== Fastest Shipping Quotes ===");
+
+            foreach (Order order in orders
+                .Where(o => o.Id >= 1 && o.Id <= 5)
+                .OrderBy(o => o.Id))
+            {
+                ShippingQuote quote =
+                    await quoteService.GetFastestQuoteAsync(order, ct);
+
+                Console.WriteLine(
+                    $"Order #{order.Id} -> " +
+                    $"{quote.Carrier}, " +
+                    $"Price: {quote.Price:F2}, " +
+                    $"Time: {quote.ElapsedMs} ms");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("=== All Carriers Failure Test ===");
+
+            Order order6 = orders.Single(o => o.Id == 6);
+
+            try
+            {
+                await failingQuoteService.GetFastestQuoteAsync(
+                    order6, ct);
+            }
+            catch (ShippingProviderUnavailableException ex)
+            {
+                Console.WriteLine($"Order #6 -> {ex.Message}");
+
             }
 
         }
