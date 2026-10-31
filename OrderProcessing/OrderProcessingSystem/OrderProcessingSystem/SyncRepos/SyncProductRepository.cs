@@ -82,5 +82,63 @@ namespace OrderProcessingSystem.SyncRepos
 
 
         }
+
+
+        public bool ReleaseStock(int productId, int qty)
+        {
+            if (qty <= 0)
+                throw new ArgumentOutOfRangeException(nameof(qty));
+
+            Log.Info(nameof(SyncProductRepository),
+                "Opening connection...");
+            Thread.Sleep(200);
+
+            Log.Info(nameof(SyncProductRepository),
+                "Beginning release transaction...");
+            Thread.Sleep(100);
+
+            Log.Info(nameof(SyncProductRepository),
+                $"Restoring stock for Product #{productId}...");
+            Thread.Sleep(400);
+
+            bool released = false;
+
+            _store.Syncupdate<Product>(
+                DataFiles.Products,
+                products =>
+                {
+                    Product? product = products.Find(
+                        p => p.Id == productId);
+
+                    if (product is null)
+                    {
+                        released = false;
+                        return products;
+                    }
+
+                    product.StockQuantity += qty;
+                    released = true;
+
+                    return products;
+                });
+
+            if (!released)
+            {
+                Log.Error(nameof(SyncProductRepository),
+                    $"Could not release {qty} unit(s) of Product #{productId}.");
+
+                return false;
+            }
+
+            Log.Info(nameof(SyncProductRepository),
+                "Committing release transaction...");
+            Thread.Sleep(200);
+
+            Log.Success(nameof(SyncProductRepository),
+                $"Released {qty} unit(s) of Product #{productId}.");
+
+            return true;
+        }
+
     }
 }

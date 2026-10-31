@@ -126,7 +126,11 @@ namespace OrderProcessingSystem
                 Func<Order, CancellationToken, Task<decimal>> shippingFormula = (order, token) =>
                                                                                pricingService.CalculateShippingCostAsync(order, token);
 
-
+                var syncPricingService = new SyncPricingService(
+                                                                syncProductRepository,
+                                                                syncCustomerRepository,
+                                                                syncCouponRepository,
+                                                                disableFailures: true);
 
 
                 IShippingCarrier[] carriers =

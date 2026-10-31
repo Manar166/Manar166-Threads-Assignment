@@ -1,240 +1,167 @@
-﻿using OrderProcessingSystem.Enums;
+﻿
+using OrderProcessingSystem.Enums;
 using OrderProcessingSystem.Exceptions;
-using OrderProcessingSystem.Interfaces;
 using OrderProcessingSystem.Models;
-using OrderProcessingSystem.Repos;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using OrderProcessingSystem.SyncRepos;
 
 namespace OrderProcessingSystem.Services
 {
     public class SyncOrderProcessor
     {
-        //public bool SyncProcessOrder(Order order)
-        //{
-        //    bool isReserved = false; PaymentResult paymentResult = new();
-        //    try
-        //    {
-        //        Customer customer;
-        //        try
-        //        {
-        //            customer = await _customerService.GetCustomerAsync(order.CustomerId, ct);
+        private readonly SyncCustomerRepository customerRepository;
+        private readonly SyncInventoryService inventoryService;
+        private readonly SyncPricingService pricingService;
+        private readonly SyncOrderRepositpry orderRepository;
+        private readonly SyncPaymentGateway paymentGateway;
+        private readonly SyncEmailService emailService;
 
+        public SyncOrderProcessor(
+            SyncCustomerRepository customerRepository,
+            SyncInventoryService inventoryService,
+            SyncPricingService pricingService,
+            SyncOrderRepositpry orderRepository,
+            SyncPaymentGateway paymentGateway,
+            SyncEmailService emailService)
+        {
+            this.customerRepository = customerRepository;
+            this.inventoryService = inventoryService;
+            this.pricingService = pricingService;
+            this.orderRepository = orderRepository;
+            this.paymentGateway = paymentGateway;
+            this.emailService = emailService;
+        }
 
-        //        }
-        //        catch (CustomerNotFoundExption ex)
-        //        {
-        //            order.Status = OrderStatus.Rejected;
-        //            order.FailureReason = ex.Message;
-        //            await orderRepository.SaveAsync(order, ct);
-        //            return false;
-        //        }
+        public bool ProcessOrder(Order order)
+        {
+            // 1. Validate customer
+            Customer? customer =
+                customerRepository.GetById(order.CustomerId);
 
+            if (customer == null)
+            {
+                order.Status = OrderStatus.Rejected;
+                order.FailureReason =
+                    $"Customer #{order.CustomerId} not found";
 
+                orderRepository.Save(order);
+                return false;
+            }
 
-        //        if (!customer.IsActive)
-        //        {
-        //            order.Status = OrderStatus.Rejected;
-        //            order.FailureReason = "Customer is inactive";
-        //            await orderRepository.SaveAsync(order, ct);
-        //            return false;
+            if (!customer.IsActive)
+            {
+                order.Status = OrderStatus.Rejected;
+                order.FailureReason = "Customer is inactive";
 
-        //        }
+                orderRepository.Save(order);
+                return false;
+            }
 
-        //        isReserved = await inventoryService.ReserveStockAsync(order, ct);
-        //        if (!isReserved)
-        //        {
-        //            order.Status = OrderStatus.Rejected;
-        //            order.FailureReason = $"Insufficient stock ";
-        //            await orderRepository.SaveAsync(order, ct);
-        //            return false;
+            // 2. Reserve stock
+            bool reserved = inventoryService.ReserveStock(order);
 
+            if (!reserved)
+            {
+                order.Status = OrderStatus.Rejected;
+                order.FailureReason = "Insufficient stock";
 
-        //        }
+                orderRepository.Save(order);
+                return false;
+            }
 
-        //        try
-        //        {
-        //            decimal totalPrice = await pricingService.CalculateTotalAsync(order, ct);
-        //        }
-        //        catch (InvalidCouponException ex)
-        //        {
-        //            bool released = await inventoryService.ReleaseStockAsync(order, CancellationToken.None);
-        //            if (!released)
-        //            {
-        //                throw new InvalidOperationException(
-        //                    $"Failed to release stock for Order #{order.Id}");
-        //            }
+            // 3. Calculate total
+            try
+            {
+                pricingService.CalculateTotal(order);
+            }
+            catch (InvalidCouponException ex)
+            {
+                ReleaseReservedStock(order);
 
-        //            isReserved = false;
+                order.Status = OrderStatus.Rejected;
+                order.FailureReason = ex.Message;
 
-        //            order.Status = OrderStatus.Rejected;
-        //            order.FailureReason = $"{ex.Message} ";
-        //            await orderRepository.SaveAsync(order, ct);
-        //            return false;
+                orderRepository.Save(order);
+                return false;
+            }
+            catch (ShippingProviderUnavailableException ex)
+            {
+                ReleaseReservedStock(order);
 
+                order.Status = OrderStatus.Failed;
+                order.FailureReason = ex.Message;
 
-        //        }
-        //        catch (ShippingProviderUnavailableException ex)
-        //        {
-        //            await inventoryService.ReleaseStockAsync(
-        //                order, CancellationToken.None);
+                orderRepository.Save(order);
+                return false;
+            }
 
-        //            isReserved = false;
+            // 4. Process payment
+            PaymentResult payment =
+                paymentGateway.ProcessPayment(
+                    order.Id, order.TotalAmount);
 
-        //            order.Status = OrderStatus.Failed;
-        //            order.FailureReason = ex.Message;
+            if (!payment.Success)
+            {
+                ReleaseReservedStock(order);
 
-        //            await orderRepository.SaveAsync(
-        //                order, CancellationToken.None);
+                order.Status = OrderStatus.PaymentFailed;
+                order.FailureReason = "Card declined by issuer";
 
-        //            return false;
-        //        }
+                orderRepository.Save(order);
+                return false;
+            }
 
+            // 5. Payment captured
+            order.TransactionId = payment.TransactionId;
+            order.Status = OrderStatus.Completed;
+            order.FailureReason = null;
 
-        //        using var paymentCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        //        paymentCts.CancelAfter(TimeSpan.FromSeconds(3));
+            // 6. Save order + compensation
+            try
+            {
+                orderRepository.Save(order);
+            }
+            catch (DatabaseWriteException)
+            {
+                if (string.IsNullOrEmpty(payment.TransactionId))
+                    throw;
 
+                paymentGateway.Refund(payment.TransactionId);
 
+                ReleaseReservedStock(order);
 
-        //        try
-        //        {
-        //            paymentResult = await paymentGatway.ProcessPaymentAsync(order.Id, order.TotalAmount, paymentCts.Token);
+                order.Status = OrderStatus.Failed;
+                order.FailureReason =
+                    $"Database save failed after payment; payment " +
+                    $"{payment.TransactionId} refunded";
 
-        //            if (!paymentResult.Success)
-        //            {
+                orderRepository.Save(order);
+                return false;
+            }
 
+            // 7. Email confirmation
+            try
+            {
+                emailService.SendConfirmation(order, customer);
+            }
+            catch (SmtpUnavailableException ex)
+            {
+                // Email failure must not change Completed.
+                Console.WriteLine(
+                    $"Order #{order.Id}: Email failed: {ex.Message}");
+            }
 
-        //                bool released = await inventoryService.ReleaseStockAsync(order, ct);
-        //                if (!released)
-        //                {
-        //                    throw new InvalidOperationException(
-        //                        $"Failed to release stock for Order #{order.Id}");
-        //                }
+            return order.Status == OrderStatus.Completed;
+        }
 
-        //                order.Status = OrderStatus.PaymentFailed;
-        //                order.FailureReason = $"PaymentFailed, Card declined by issuer ";
-        //                await orderRepository.SaveAsync(order, ct);
-        //                return false;
-        //            }
+        private void ReleaseReservedStock(Order order)
+        {
+            bool released = inventoryService.ReleaseStock(order);
 
-        //            order.TransactionId = paymentResult.TransactionId;
-        //            order.Status = OrderStatus.Completed;
-        //            order.FailureReason = null;
-        //            try
-        //            {
-        //                await orderRepository.SaveAsync(order, ct);
-        //            }
-        //            catch (DatabaseWriteException)
-        //            {
-        //                await paymentGatway.RefundAsync(
-        //                    paymentResult.TransactionId,
-        //                    CancellationToken.None);
-
-        //                paymentResult.Status = PaymentStatus.Refunded;
-        //                bool released = await inventoryService.ReleaseStockAsync(order, CancellationToken.None);
-        //                if (!released)
-        //                {
-        //                    throw new InvalidOperationException(
-        //                        $"Failed to release stock for Order #{order.Id}");
-        //                }
-
-        //                isReserved = false;
-
-        //                order.Status = OrderStatus.Failed;
-        //                order.FailureReason =
-        //                    $"Database save failed after payment; payment " +
-        //                    $"{order.TransactionId} refunded";
-
-        //                await orderRepository.SaveAsync(
-        //                    order, CancellationToken.None);
-
-        //                return false;
-        //            }
-
-
-
-
-
-        //        }
-
-        //        catch (OperationCanceledException) when (!ct.IsCancellationRequested && paymentCts.IsCancellationRequested)
-
-        //        {
-        //            bool released = await inventoryService.ReleaseStockAsync(order, CancellationToken.None);
-        //            if (!released)
-        //            {
-        //                throw new InvalidOperationException(
-        //                    $"Failed to release stock for Order #{order.Id}");
-        //            }
-
-        //            isReserved = false;
-
-        //            order.Status = OrderStatus.PaymentFailed;
-        //            order.FailureReason = "Payment gateway timeout (3s)";
-
-        //            await orderRepository.SaveAsync(
-        //                order, CancellationToken.None);
-
-        //            return false;
-        //        }
-
-
-
-        //        bool emailSent = false;
-
-        //        for (int i = 1; i <= 3; i++)
-        //        {
-        //            ct.ThrowIfCancellationRequested();
-        //            try
-        //            {
-        //                await emailService.SendConfirmationAsync(order, customer, ct);
-        //                emailSent = true;
-        //                break;
-        //            }
-        //            catch (SmtpUnavailableException ex)
-        //            {
-        //                Console.WriteLine($"Order #{order.Id}: Email attempt {i} failed: {ex.Message}");
-
-        //            }
-
-
-        //        }
-        //        if (!emailSent)
-        //        {
-        //            Console.WriteLine($"Order #{order.Id}: Email failed after 3 attempts.");
-        //        }
-
-
-        //        return order.Status == OrderStatus.Completed;
-        //    }
-        //    catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        //    {
-        //        if (paymentResult.Status == PaymentStatus.Captured)
-        //        {
-        //            await paymentGatway.RefundAsync(paymentResult.TransactionId, CancellationToken.None);
-        //        }
-
-        //        if (isReserved)
-        //        {
-        //            bool released = await inventoryService.ReleaseStockAsync(order, CancellationToken.None);
-        //            if (!released)
-        //            {
-        //                throw new InvalidOperationException(
-        //                    $"Failed to release stock for Order #{order.Id}");
-        //            }
-        //            isReserved = false;
-        //        }
-
-        //        order.Status = OrderStatus.Pending;
-        //        order.FailureReason = "Cancelled";
-        //        await orderRepository.SaveAsync(order, CancellationToken.None);
-
-        //        throw;
-
-        //    }
-
-
-        //}
+            if (!released)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to release stock for Order #{order.Id}");
+            }
+        }
     }
 }
